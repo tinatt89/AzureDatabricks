@@ -1,5 +1,32 @@
 # Databricks notebook source
 # MAGIC %md
+# MAGIC ### Passing Parameters
+
+# COMMAND ----------
+
+dbutils.widgets.text("Datasource","")
+datasource = dbutils.widgets.get("Datasource")
+
+dbutils.widgets.text("Filedate","")
+filedate = dbutils.widgets.get("Filedate")
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Invoke Configuration notebook
+
+# COMMAND ----------
+
+# MAGIC %run "../Includes/configuration"
+
+# COMMAND ----------
+
+# MAGIC %run "../Includes/common_functions"
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ### Define a Schema
 # MAGIC a schema inside a schema
 
@@ -27,7 +54,7 @@ drivers_schema = StructType(fields = data_schema)
 
 # COMMAND ----------
 
-drivers_df = spark.read.json("/mnt/formula1datastore/bronze/drivers.json",schema= drivers_schema)
+drivers_df = spark.read.json(f"{bronze_path}/{filedate}/drivers.json",schema= drivers_schema)
 
 # COMMAND ----------
 
@@ -52,6 +79,10 @@ drivers_df = drivers_df.withColumnRenamed('driverId','driver_id').withColumnRena
 
 # COMMAND ----------
 
+drivers_df = drivers_df.withColumn("data_source", lit(datasource)).withColumn("file_date", lit(filedate))
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ### Drop columns
 
@@ -65,5 +96,10 @@ display(drivers_df)
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ### Full Load
+
+# COMMAND ----------
+
 # Write to destination
-drivers_df.write.parquet("/mnt/formula1datastore/silver/drivers",mode = "overwrite")
+drivers_df.write.mode("overwrite").format("parquet").saveAsTable("f1_silver.drivers")

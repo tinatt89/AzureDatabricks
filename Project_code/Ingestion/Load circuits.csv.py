@@ -18,11 +18,11 @@ datasource
 
 # COMMAND ----------
 
-# # Define a input widget
-# dbutils.widgets.text("Filedate","")
-# # Retrieves value from an input widget
-# filedate = dbutils.widgets.get("Filedate")
-# filedate
+# Define a input widget
+dbutils.widgets.text("Filedate","")
+# Retrieves value from an input widget
+filedate = dbutils.widgets.get("Filedate")
+filedate
 
 # COMMAND ----------
 
@@ -64,7 +64,7 @@ circuits_schema = StructType(fields = data_schema)
 
 # COMMAND ----------
 
-circuits_df = spark.read.csv(f"{bronze_path}/circuits.csv",header= True, schema= circuits_schema)
+circuits_df = spark.read.csv(f"{bronze_path}/{filedate}/circuits.csv",header= True, schema= circuits_schema)
 
 # COMMAND ----------
 
@@ -103,16 +103,16 @@ circuits_df = add_ingestion_date(circuits_df)
 
 # COMMAND ----------
 
-circuits_df = circuits_df.withColumn("data_source", lit(datasource))
+circuits_df = circuits_df.withColumn("data_source", lit(datasource)).withColumn("file_date", lit(filedate))
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Write the file to data lake
+# MAGIC ### Full Load
 
 # COMMAND ----------
 
-circuits_df.write.parquet(f"{silver_path}/circuits",mode = "overwrite") 
+circuits_df.write.mode("overwrite").format("parquet").saveAsTable("f1_silver.circuits")
 
 # COMMAND ----------
 
@@ -121,7 +121,3 @@ display(spark.read.parquet(f"{silver_path}/circuits"))
 # COMMAND ----------
 
 dbutils.notebook.exit('Success')
-
-# COMMAND ----------
-
-

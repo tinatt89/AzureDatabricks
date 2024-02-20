@@ -1,9 +1,28 @@
 # Databricks notebook source
-races_df = spark.read.csv("/mnt/formula1datastore/bronze/races.csv",header= True)
+# MAGIC %md
+# MAGIC ### Passing Parameters
 
 # COMMAND ----------
 
-display(races_df.printSchema())
+dbutils.widgets.text("Datasource","")
+datasource = dbutils.widgets.get("Datasource")
+
+dbutils.widgets.text("Filedate","")
+filedate = dbutils.widgets.get("Filedate")
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Invoke Configuration notebook
+
+# COMMAND ----------
+
+# MAGIC %run "../Includes/configuration"
+
+# COMMAND ----------
+
+# MAGIC %run "../Includes/common_functions"
 
 # COMMAND ----------
 
@@ -29,7 +48,7 @@ races_schema = StructType(fields = data_schema)
 
 # COMMAND ----------
 
-races_df = spark.read.csv("/mnt/formula1datastore/bronze/races.csv",header= True, schema = races_schema )
+races_df = spark.read.csv(f"{bronze_path}/{filedate}/races.csv",header= True, schema = races_schema )
 
 # COMMAND ----------
 
@@ -74,9 +93,17 @@ display(races_df)
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ### Write to the data lake
+races_df = races_df.withColumn("data_source", lit(datasource)).withColumn("file_date", lit(filedate))
 
 # COMMAND ----------
 
-races_df.write.partitionBy('race_year').parquet("/mnt/formula1datastore/silver/races",mode = "overwrite") 
+# MAGIC %md
+# MAGIC ### Full Load
+
+# COMMAND ----------
+
+races_df.write.mode("overwrite").partitionBy('race_year').format("parquet").saveAsTable("f1_silver.races")
+
+# COMMAND ----------
+
+display(spark.read.parquet(f"{silver_path}/races"))
